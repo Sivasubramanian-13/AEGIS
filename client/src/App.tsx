@@ -9,6 +9,8 @@ import Scan from './pages/Scan'
 import Activity from './pages/Activity'
 import Review from './pages/Review'
 import Settings from './pages/Settings'
+import UploadSession from './pages/UploadSession'
+import ScanSession from './pages/ScanSession'
 
 export default function App() {
   const [loading, setLoading] = useState(true)
@@ -25,8 +27,12 @@ export default function App() {
     return <SplashScreen />
   }
 
+
   return (
     <Routes>
+      <Route path="/scan-session" element={<ScanSession />} />
+      <Route path="/upload-session" element={<UploadSession />} />
+
       <Route element={<AppLayout />}>
         <Route path="/" element={<Scan />} />
         <Route path="/activity" element={<Activity />} />
@@ -35,4 +41,5 @@ export default function App() {
       </Route>
     </Routes>
   )
+
 }
