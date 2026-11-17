@@ -37,7 +37,14 @@ type ProcessResponse = {
   success?: boolean
   status?: 'saved' | 'review'
   message?: string
-  row?: Record<string, string>
+}
+
+type CreateSessionResponse = {
+  success: boolean
+  session?: {
+    id: string
+  }
+  message?: string
 }
 
 export default function UploadSession() {
@@ -51,6 +58,9 @@ export default function UploadSession() {
   const pauseRequestedRef = useRef(false)
   const resumeRef = useRef<(() => void) | null>(null)
   const mountedRef = useRef(true)
+
+  // One session ID is reused for all images in the current batch.
+  const sessionIdRef = useRef<string | null>(null)
 
   const [images, setImages] = useState<UploadImage[]>([])
   const [error, setError] = useState('')
@@ -92,9 +102,34 @@ export default function UploadSession() {
       const updated = previous.map(image =>
         image.id === id ? { ...image, ...updates } : image
       )
+
       imagesRef.current = updated
       return updated
     })
+  }
+
+  // Create one backend session for this upload batch.
+  const createUploadSession = async (): Promise<string> => {
+    const response = await fetch(`${API_URL}/api/sessions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        sheetId,
+        sheetName,
+        totalImages: 0,
+      }),
+    })
+
+    const data: CreateSessionResponse = await response.json()
+
+    if (!response.ok || !data.success || !data.session?.id) {
+      throw new Error(data.message || 'Could not create upload session.')
+    }
+
+    sessionIdRef.current = data.session.id
+    return data.session.id
   }
 
   // Add selected images after validating their format and size.
@@ -125,6 +160,11 @@ export default function UploadSession() {
     })
 
     if (validImages.length) {
+      // New images after a completed batch belong to a new session.
+      if (processingComplete) {
+        sessionIdRef.current = null
+      }
+
       setImages(previous => {
         const updated = [...previous, ...validImages]
         imagesRef.current = updated
@@ -153,6 +193,7 @@ export default function UploadSession() {
     })
 
     setProcessingComplete(false)
+    sessionIdRef.current = null
   }
 
   const clearImages = () => {
@@ -166,10 +207,14 @@ export default function UploadSession() {
     setImages([])
     setError('')
     setProcessingComplete(false)
+    sessionIdRef.current = null
   }
 
-  // Process one image. The next image is not started until this finishes.
-  const processOneImage = async (image: UploadImage) => {
+  // Process one image. The next image starts only after this finishes.
+  const processOneImage = async (
+    image: UploadImage,
+    sessionId: string
+  ) => {
     updateImage(image.id, {
       status: 'processing',
       message: 'Extracting prescription details...',
@@ -180,6 +225,7 @@ export default function UploadSession() {
 
       formData.append('image', image.file)
       formData.append('sheetId', sheetId)
+      formData.append('sessionId', sessionId)
 
       const response = await fetch(
         `${API_URL}/api/prescriptions/process`,
@@ -258,16 +304,28 @@ export default function UploadSession() {
     setError('')
 
     try {
+      // Reuse the session when resuming; create one for a new batch.
+      const sessionId =
+        sessionIdRef.current || await createUploadSession()
+
       for (const image of queue) {
         await waitForResume()
 
         if (!mountedRef.current) return
 
-        await processOneImage(image)
+        await processOneImage(image, sessionId)
       }
 
       if (mountedRef.current) {
         setProcessingComplete(true)
+      }
+    } catch (err) {
+      if (mountedRef.current) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Could not start the upload session.'
+        )
       }
     } finally {
       processingRef.current = false

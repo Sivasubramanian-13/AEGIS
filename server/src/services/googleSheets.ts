@@ -1,7 +1,8 @@
 import { google } from 'googleapis'
 import type { Credentials } from 'google-auth-library'
-import { readFile } from 'node:fs/promises'
+import { readFile, unlink } from 'node:fs/promises'
 import path from 'node:path'
+
 
 const auth = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
@@ -37,6 +38,19 @@ export async function loadGoogleTokens() {
     }
 
     throw error
+  }
+}
+export async function clearGoogleTokens() {
+  // Clear credentials from the running OAuth client
+  auth.setCredentials({})
+
+  // Remove the stored Google tokens
+  try {
+    await unlink(tokenPath)
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      throw error
+    }
   }
 }
 

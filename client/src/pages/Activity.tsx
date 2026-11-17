@@ -1,151 +1,208 @@
 
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Clock3,
   FileSpreadsheet,
   Download,
   Trash2,
-  ArrowRight,
   AlertCircle,
   CheckCircle2,
   LoaderCircle,
   X,
+  RefreshCw,
+  ClipboardCheck,
 } from 'lucide-react'
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 type JobStatus = 'processing' | 'review' | 'completed' | 'failed'
 
 type ScanJob = {
   id: string
-  name: string
+  sheetId: string
+  sheetName: string
   startedAt: string
-  modifiedAt: string
-  images: number
-  rowsExtracted: number
+  updatedAt: string
+  totalImages: number
+  saved: number
+  needsReview: number
   failed: number
   status: JobStatus
 }
 
-const initialJobs: ScanJob[] = [
-  {
-    id: 'job-1',
-    name: 'Scan 2026-11-16 11:30',
-    startedAt: 'Nov 16, 2026, 11:30 AM',
-    modifiedAt: 'Updated just now',
-    images: 4,
-    rowsExtracted: 3,
-    failed: 0,
-    status: 'review',
-  },
-  {
-    id: 'job-2',
-    name: 'Scan 2026-11-15 12:07',
-    startedAt: 'Nov 15, 2026, 5:37 PM',
-    modifiedAt: 'Updated 2 min ago',
-    images: 1,
-    rowsExtracted: 0,
-    failed: 0,
-    status: 'processing',
-  },
-  {
-    id: 'job-3',
-    name: 'Scan 2026-11-15 09:02',
-    startedAt: 'Nov 15, 2026, 2:32 PM',
-    modifiedAt: 'Updated 3 hours ago',
-    images: 1,
-    rowsExtracted: 1,
-    failed: 0,
-    status: 'review',
-  },
-  {
-    id: 'job-4',
-    name: 'Scan 2026-11-15 09:00',
-    startedAt: 'Nov 15, 2026, 2:30 PM',
-    modifiedAt: 'Updated 3 hours ago',
-    images: 2,
-    rowsExtracted: 0,
-    failed: 2,
-    status: 'failed',
-  },
-  {
-    id: 'job-5',
-    name: 'Scan 2026-11-14 16:20',
-    startedAt: 'Nov 14, 2026, 4:20 PM',
-    modifiedAt: 'Updated yesterday',
-    images: 6,
-    rowsExtracted: 6,
-    failed: 0,
-    status: 'completed',
-  },
-]
+type SessionsResponse = {
+  success: boolean
+  sessions?: ScanJob[]
+  message?: string
+}
+
+function formatDate(value: string) {
+  return new Date(value).toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function getStatusLabel(status: JobStatus) {
+  switch (status) {
+    case 'processing':
+      return 'Processing'
+    case 'review':
+      return 'Needs review'
+    case 'completed':
+      return 'Completed'
+    case 'failed':
+      return 'Failed'
+  }
+}
 
 export default function Activity() {
-  const [jobs, setJobs] = useState<ScanJob[]>(initialJobs)
+  const navigate = useNavigate()
+
+  const [jobs, setJobs] = useState<ScanJob[]>([])
   const [deleteJob, setDeleteJob] = useState<ScanJob | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [deleting, setDeleting] = useState(false)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
 
-  const openJob = (job: ScanJob) => {
-    // Job details navigation will be connected to the backend job record.
-    console.log('Open job:', job.id)
-  }
+  const fetchSessions = useCallback(async () => {
+    try {
+      setError('')
 
+      const response = await fetch(`${API_URL}/api/sessions`)
+      const data: SessionsResponse = await response.json()
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Could not load activity.')
+      }
+
+      setJobs(data.sessions || [])
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Could not load activity.'
+      )
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchSessions()
+  }, [fetchSessions])
+
+  // Open this session's spreadsheet in the Review page.
   const reviewJob = (job: ScanJob) => {
-    // Review navigation will be connected to the saved extraction results.
-    console.log('Review job:', job.id)
+    navigate('/review', {
+      state: {
+        sheetId: job.sheetId,
+        sheetName: job.sheetName,
+      },
+    })
   }
 
-  const downloadJob = (job: ScanJob) => {
-    // Actual XLSX download will be connected to the backend export endpoint.
-    console.log('Download job:', job.id)
+  // Download the spreadsheet as an XLSX file.
+  const downloadJob = async (job: ScanJob) => {
+    try {
+      setDownloadingId(job.id)
+      setError('')
+
+      const response = await fetch(
+        `${API_URL}/api/sheets/${encodeURIComponent(job.sheetId)}/export`
+      )
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null)
+        throw new Error(data?.message || 'Could not download Excel file.')
+      }
+
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+
+      link.href = url
+      link.download = `${job.sheetName || 'prescriptions'}.xlsx`
+
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Could not download Excel file.'
+      )
+    } finally {
+      setDownloadingId(null)
+    }
   }
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deleteJob) return
-    setJobs(previous => previous.filter(job => job.id !== deleteJob.id))
-    setDeleteJob(null)
+
+    setDeleting(true)
+
+    try {
+      const response = await fetch(
+        `${API_URL}/api/sessions/${encodeURIComponent(deleteJob.id)}`,
+        { method: 'DELETE' }
+      )
+
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Could not delete session.')
+      }
+
+      setJobs(previous =>
+        previous.filter(job => job.id !== deleteJob.id)
+      )
+      setDeleteJob(null)
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Could not delete session.'
+      )
+    } finally {
+      setDeleting(false)
+    }
   }
 
-  const renderActions = (job: ScanJob) => {
-    if (job.status === 'processing') {
-      return (
-        <button className="activity-action-button" onClick={() => openJob(job)}>
-          Open <ArrowRight size={15} />
-        </button>
-      )
-    }
-
-    if (job.status === 'review') {
-      return (
-        <>
-          <button className="activity-action-button" onClick={() => reviewJob(job)}>
-            Review <ArrowRight size={15} />
-          </button>
-          {job.rowsExtracted > 0 && (
-            <button className="activity-action-button" onClick={() => downloadJob(job)}>
-              <Download size={15} /> Download .xlsx
-            </button>
-          )}
-        </>
-      )
-    }
-
-    if (job.status === 'completed') {
-      return (
-        <>
-          <button className="activity-action-button" onClick={() => openJob(job)}>
-            Open
-          </button>
-          <button className="activity-action-button" onClick={() => downloadJob(job)}>
-            <Download size={15} /> Download .xlsx
-          </button>
-        </>
-      )
-    }
-
-    return (
-      <button className="activity-action-button" onClick={() => openJob(job)}>
-        Open details
+  const renderActions = (job: ScanJob) => (
+    <>
+      <button
+        className="activity-action-button"
+        onClick={() => reviewJob(job)}
+      >
+        <ClipboardCheck size={15} />
+        Review
       </button>
-    )
-  }
+
+      {job.saved > 0 && (
+        <button
+          className="activity-action-button"
+          onClick={() => downloadJob(job)}
+          disabled={downloadingId === job.id}
+        >
+          {downloadingId === job.id ? (
+            <LoaderCircle size={15} className="activity-spin" />
+          ) : (
+            <Download size={15} />
+          )}
+          {downloadingId === job.id ? 'Downloading...' : 'Download .xlsx'}
+        </button>
+      )}
+    </>
+  )
 
   return (
     <div className="page-container activity-page">
@@ -155,28 +212,33 @@ export default function Activity() {
         <p>Track your prescription scanning and upload sessions.</p>
       </div>
 
-      <div className="activity-summary">
-        <div>
-          <strong>{jobs.length}</strong>
-          <span>Total jobs</span>
-        </div>
-        <div>
-          <strong>{jobs.reduce((sum, job) => sum + job.images, 0)}</strong>
-          <span>Images processed</span>
-        </div>
-        <div>
-          <strong>{jobs.reduce((sum, job) => sum + job.rowsExtracted, 0)}</strong>
-          <span>Rows extracted</span>
-        </div>
-      </div>
-
       <section className="activity-job-list">
         <div className="activity-list-heading">
-          <h2>Recent jobs</h2>
-          <span>{jobs.length} sessions</span>
+          <h2>Recent sessions</h2>
+
+          <button
+            className="activity-action-button"
+            onClick={fetchSessions}
+            disabled={loading}
+          >
+            <RefreshCw size={15} />
+            Refresh
+          </button>
         </div>
 
-        {jobs.length === 0 ? (
+        {error && (
+          <div className="activity-job-note">
+            <AlertCircle size={15} />
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="activity-empty">
+            <LoaderCircle size={26} className="activity-spin" />
+            <p>Loading sessions...</p>
+          </div>
+        ) : jobs.length === 0 ? (
           <div className="activity-empty">
             <Clock3 size={28} />
             <h3>No activity yet</h3>
@@ -189,13 +251,14 @@ export default function Activity() {
                 <div className="activity-job-heading">
                   <div className="activity-job-title">
                     <FileSpreadsheet size={17} />
-                    <h3>{job.name}</h3>
+                    <h3>{job.sheetName}</h3>
                   </div>
+
                   <button
                     className="activity-delete-button"
                     onClick={() => setDeleteJob(job)}
-                    aria-label={`Delete ${job.name}`}
-                    title="Delete job"
+                    aria-label={`Delete ${job.sheetName} session`}
+                    title="Delete session"
                   >
                     <Trash2 size={17} />
                   </button>
@@ -203,20 +266,24 @@ export default function Activity() {
 
                 <div className="activity-job-time">
                   <Clock3 size={13} />
-                  <span>Started {job.startedAt}</span>
+                  <span>Started {formatDate(job.startedAt)}</span>
                 </div>
 
-                <p className="activity-modified">{job.modifiedAt}</p>
+                <p className="activity-modified">
+                  Updated {formatDate(job.updatedAt)}
+                </p>
 
                 <div className="activity-job-metrics">
                   <div>
-                    <span>Images</span>
-                    <strong>{job.images}</strong>
+                    <span>Images processed</span>
+                    <strong>{job.totalImages}</strong>
                   </div>
+
                   <div>
                     <span>Rows extracted</span>
-                    <strong>{job.rowsExtracted}</strong>
+                    <strong>{job.saved}</strong>
                   </div>
+
                   <div>
                     <span>Failed</span>
                     <strong>{job.failed}</strong>
@@ -225,33 +292,43 @@ export default function Activity() {
 
                 <div className="activity-job-actions">
                   {renderActions(job)}
+
                   <button
                     className="activity-delete-mobile"
                     onClick={() => setDeleteJob(job)}
-                    aria-label={`Delete ${job.name}`}
+                    aria-label={`Delete ${job.sheetName} session`}
                   >
                     <Trash2 size={17} />
                   </button>
                 </div>
 
-                {job.status === 'failed' && (
-                  <p className="activity-job-note">
-                    <AlertCircle size={14} />
-                    {job.failed} image(s) failed. Open this job to inspect the errors.
-                  </p>
-                )}
-                {job.status === 'processing' && (
-                  <p className="activity-job-note">
-                    <LoaderCircle size={14} className="activity-spin" />
-                    Processing is still in progress.
-                  </p>
-                )}
-                {job.status === 'completed' && (
-                  <p className="activity-job-note">
-                    <CheckCircle2 size={14} />
-                    All available records have been saved.
-                  </p>
-                )}
+                <p className="activity-job-note">
+                  {job.status === 'processing' ? (
+                    <>
+                      <LoaderCircle size={14} className="activity-spin" />
+                      Processing is still in progress.
+                    </>
+                  ) : job.status === 'review' ? (
+                    <>
+                      <AlertCircle size={14} />
+                      {job.needsReview} prescription(s) need review.
+                    </>
+                  ) : job.status === 'failed' ? (
+                    <>
+                      <AlertCircle size={14} />
+                      {job.failed} image(s) failed.
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 size={14} />
+                      All available records have been saved.
+                    </>
+                  )}
+                </p>
+
+                <span className={`activity-status ${job.status}`}>
+                  {getStatusLabel(job.status)}
+                </span>
               </article>
             ))}
           </div>
@@ -260,30 +337,50 @@ export default function Activity() {
 
       {deleteJob && (
         <div className="activity-confirm-overlay">
-          <div className="activity-confirm-dialog" role="dialog" aria-modal="true">
+          <div
+            className="activity-confirm-dialog"
+            role="dialog"
+            aria-modal="true"
+          >
             <div className="activity-confirm-icon">
               <Trash2 size={21} />
             </div>
-            <h2>Delete this job?</h2>
+
+            <h2>Delete this session?</h2>
+
             <p>
-              Are you sure you want to delete <strong>{deleteJob.name}</strong>?
-              This will remove the job from your activity history.
+              Are you sure you want to delete{' '}
+              <strong>{deleteJob.sheetName}</strong> from your activity
+              history?
             </p>
+
             <p className="activity-delete-warning">
-              This action cannot be undone.
+              This removes only session history. Your Google Sheet data
+              will not be deleted.
             </p>
+
             <div className="activity-confirm-actions">
-              <button onClick={() => setDeleteJob(null)}>
+              <button
+                onClick={() => setDeleteJob(null)}
+                disabled={deleting}
+              >
                 Cancel
               </button>
-              <button className="activity-confirm-delete" onClick={confirmDelete}>
-                Delete job
+
+              <button
+                className="activity-confirm-delete"
+                onClick={confirmDelete}
+                disabled={deleting}
+              >
+                {deleting ? 'Deleting...' : 'Delete session'}
               </button>
             </div>
+
             <button
               className="activity-confirm-close"
               onClick={() => setDeleteJob(null)}
               aria-label="Close confirmation"
+              disabled={deleting}
             >
               <X size={17} />
             </button>

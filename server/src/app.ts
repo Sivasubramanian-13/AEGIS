@@ -4,9 +4,10 @@ import cors from 'cors'
 import helmet from 'helmet'
 import { config } from './config.js'
 
-import scanRouter from './routes/scan.js'   
+import scanRouter from './routes/scan.js'
 import authRouter from './routes/auth.js'
 import sheetsRouter from './routes/sheets.js'
+import sessionsRouter from './routes/sessions.js'
 
 const app = express()
 
@@ -20,10 +21,9 @@ app.use(cors({
 app.use(express.json({ limit: '1mb' }))
 
 app.use('/api/auth', authRouter)
-
 app.use('/api/prescriptions', scanRouter)
-
 app.use('/api/sheets', sheetsRouter)
+app.use('/api/sessions', sessionsRouter)
 
 app.get('/api/health', (_req, res) => {
   res.json({

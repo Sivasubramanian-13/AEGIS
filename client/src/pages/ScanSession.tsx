@@ -22,8 +22,16 @@ type ScanImage = {
 }
 
 type ProcessResponse = {
-  status: 'saved' | 'review'
   success?: boolean
+  status?: 'saved' | 'review'
+  message?: string
+}
+
+type CreateSessionResponse = {
+  success: boolean
+  session?: {
+    id: string
+  }
   message?: string
 }
 
@@ -39,6 +47,9 @@ export default function ScanSession() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const latestImageRef = useRef<ScanImage | null>(null)
   const mountedRef = useRef(true)
+
+  // Create one backend session and reuse it for every image.
+  const sessionPromiseRef = useRef<Promise<string> | null>(null)
 
   const [cameraReady, setCameraReady] = useState(false)
   const [cameraError, setCameraError] = useState('')
@@ -63,6 +74,42 @@ export default function ScanSession() {
 
     setToast(message)
     setToastType(type)
+  }
+
+  // Create the session only when the first image is processed.
+  const ensureSession = async (): Promise<string> => {
+    if (!sessionPromiseRef.current) {
+      sessionPromiseRef.current = (async () => {
+        const response = await fetch(`${API_URL}/api/sessions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            sheetId,
+            sheetName,
+            totalImages: 0,
+          }),
+        })
+
+        const data: CreateSessionResponse = await response.json()
+
+        if (!response.ok || !data.success || !data.session?.id) {
+          throw new Error(
+            data.message || 'Could not create scanning session.'
+          )
+        }
+
+        return data.session.id
+      })()
+    }
+
+    try {
+      return await sessionPromiseRef.current
+    } catch (error) {
+      sessionPromiseRef.current = null
+      throw error
+    }
   }
 
   // Stop the active camera stream.
@@ -120,7 +167,7 @@ export default function ScanSession() {
     }
   }, [stopCamera])
 
-  // Validate session and initialize camera.
+  // Validate spreadsheet and initialize camera.
   useEffect(() => {
     mountedRef.current = true
 
@@ -155,10 +202,13 @@ export default function ScanSession() {
     showMessage('Processing prescription...', 'info')
 
     try {
+      const sessionId = await ensureSession()
+
       const formData = new FormData()
 
       formData.append('image', file)
       formData.append('sheetId', sheetId)
+      formData.append('sessionId', sessionId)
 
       const response = await fetch(
         `${API_URL}/api/prescriptions/process`,

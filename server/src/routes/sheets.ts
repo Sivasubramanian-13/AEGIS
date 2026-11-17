@@ -101,6 +101,61 @@ router.post('/', async (req, res) => {
   }
 })
 
+// GET: Export spreadsheet as Excel (.xlsx)
+router.get('/:id/export', async (req, res) => {
+  try {
+    const drive = google.drive({
+      version: 'v3',
+      auth: getGoogleAuth(),
+    })
+
+    // Get spreadsheet name for the downloaded filename.
+    const file = await drive.files.get({
+      fileId: req.params.id,
+      fields: 'name',
+    })
+
+    // Export Google Sheets to XLSX format.
+    const response = await drive.files.export(
+      {
+        fileId: req.params.id,
+        mimeType:
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      },
+      {
+        responseType: 'arraybuffer',
+      }
+    )
+
+    const buffer = Buffer.from(response.data as ArrayBuffer)
+
+    const filename = (file.data.name || 'prescriptions')
+      .replace(/[<>:"/\\|?*]/g, '_')
+      .trim()
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${filename}.xlsx"`
+    )
+
+    res.setHeader('Content-Length', buffer.length)
+
+    return res.send(buffer)
+  } catch (error) {
+    console.error('Export spreadsheet error:', error)
+
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to export spreadsheet as Excel',
+    })
+  }
+})
+
 // GET: Spreadsheet details
 router.get('/:id', async (req, res) => {
   try {
@@ -123,6 +178,121 @@ router.get('/:id', async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Unable to retrieve spreadsheet',
+    })
+  }
+})
+
+// GET: Read prescription records from a spreadsheet
+router.get('/:id/rows', async (req, res) => {
+  try {
+    const sheets = google.sheets({
+      version: 'v4',
+      auth: getGoogleAuth(),
+    })
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: req.params.id,
+      range: 'Sheet1!A:F',
+    })
+
+    const values = response.data.values || []
+
+    // Skip the header row and return six columns per record.
+    const rows = values.slice(1).map((row, index) => ({
+      id: String(index + 1),
+      values: Array.from(
+        { length: 6 },
+        (_, columnIndex) => String(row[columnIndex] ?? '')
+      ),
+    }))
+
+    return res.json({ success: true, rows })
+  } catch (error) {
+    console.error('Read spreadsheet rows error:', error)
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to read spreadsheet records',
+    })
+  }
+})
+
+// PUT: Save corrected prescription records
+router.put('/:id/rows', async (req, res) => {
+  try {
+    const { rows } = req.body
+
+    if (!Array.isArray(rows)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Rows must be an array',
+      })
+    }
+
+    const sheets = google.sheets({
+      version: 'v4',
+      auth: getGoogleAuth(),
+    })
+
+    const values = rows.map((row: { values: string[] }, index: number) => {
+      if (!Array.isArray(row.values) || row.values.length !== 6) {
+        throw new Error(`Invalid row at position ${index + 1}`)
+      }
+
+      return [
+        String(index + 1),
+        ...row.values.slice(1).map(value => String(value ?? '')),
+      ]
+    })
+
+    // Clear old records first, so deleted rows are removed too.
+    await sheets.spreadsheets.values.clear({
+      spreadsheetId: req.params.id,
+      range: 'Sheet1!A2:F',
+    })
+
+    if (values.length > 0) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: req.params.id,
+        range: 'Sheet1!A2:F',
+        valueInputOption: 'RAW',
+        requestBody: { values },
+      })
+    }
+
+    return res.json({
+      success: true,
+      message: 'Spreadsheet records updated',
+    })
+  } catch (error) {
+    console.error('Save spreadsheet rows error:', error)
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to save spreadsheet records',
+    })
+  }
+})
+
+// DELETE: Delete an actual Google spreadsheet
+router.delete('/:id', async (req, res) => {
+  try {
+    const drive = google.drive({
+      version: 'v3',
+      auth: getGoogleAuth(),
+    })
+
+    await drive.files.delete({
+      fileId: req.params.id,
+    })
+
+    return res.json({
+      success: true,
+      message: 'Spreadsheet deleted',
+    })
+  } catch (error) {
+    console.error('Delete spreadsheet error:', error)
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to delete spreadsheet',
     })
   }
 })

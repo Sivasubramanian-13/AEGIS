@@ -3,9 +3,12 @@ import { Router } from 'express'
 import { randomBytes } from 'node:crypto'
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
+
+import { google } from 'googleapis'
 import {
   getGoogleAuth,
   setGoogleTokens,
+  clearGoogleTokens,
 } from '../services/googleSheets.js'
 
 const router = Router()
@@ -125,5 +128,72 @@ router.get('/google/callback', async (req, res) => {
     )
   }
 })
+// GET: Return connected Google account details
+router.get('/me', async (_req, res) => {
+  try {
+    const auth = getGoogleAuth()
 
+    if (!auth.credentials.access_token) {
+      return res.status(401).json({
+        success: false,
+        message: 'Google account is not connected',
+      })
+    }
+
+    const oauth2 = google.oauth2({
+      version: 'v2',
+      auth,
+    })
+
+    const response = await oauth2.userinfo.get()
+    const profile = response.data
+
+    const allowedEmail = process.env.ALLOWED_GOOGLE_EMAIL
+
+    if (
+      !profile.email ||
+      profile.email.toLowerCase() !== allowedEmail?.toLowerCase()
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized Google account',
+      })
+    }
+
+    return res.json({
+      success: true,
+      user: {
+        name: profile.name,
+        email: profile.email,
+        picture: profile.picture,
+      },
+    })
+  } catch (error) {
+    console.error('Google profile error:', error)
+
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to retrieve Google account details',
+    })
+  }
+})
+
+// Disconnect Google account / sign out
+router.post('/logout', async (_req, res) => {
+  try {
+    await clearGoogleTokens()
+
+    return res.json({
+      success: true,
+      message: 'Google account disconnected successfully',
+    })
+  } catch (error) {
+    console.error('Google logout error:', error)
+
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to disconnect Google account',
+    })
+  }
+})
 export default router

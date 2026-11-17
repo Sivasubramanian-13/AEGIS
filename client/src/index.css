@@ -5169,3 +5169,216 @@ body {
     padding: 12px 15px max(12px, env(safe-area-inset-bottom));
   }
 }
+.activity-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 12px;
+}
+
+.activity-status.processing { color: #2563eb; }
+.activity-status.review { color: #b7791f; }
+.activity-status.completed { color: #087568; }
+.activity-status.failed { color: #dc4444; }
+
+
+/* Settings page */
+
+.settings-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.settings-profile > div:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.settings-profile span,
+.settings-account-row > div > span {
+  overflow-wrap: anywhere;
+}
+
+.settings-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border);
+}
+
+.settings-avatar-placeholder {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--app-bg);
+  border: 1px solid var(--border);
+  font-weight: 600;
+}
+
+.settings-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+  cursor: pointer;
+}
+
+.settings-toggle-row > span {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.settings-toggle-row small {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.settings-toggle-row input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.settings-about {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0;
+}
+
+.settings-about strong {
+  font-size: 17px;
+}
+
+.settings-about span {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.settings-account-row button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .settings-account-row {
+    align-items: flex-start;
+    gap: 12px;
+  }
+.settings-profile {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  min-width: 0;
+  text-align: left;
+}
+
+.settings-profile > div:last-child {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  min-width: 0;
+  text-align: left;
+}
+
+.settings-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border);
+}
+
+.settings-avatar-placeholder {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--app-bg);
+  border: 1px solid var(--border);
+  font-weight: 600;
+}
+
+.settings-connected-label {
+  color: var(--accent);
+  font-size: 12px;
+}
+
+.settings-account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.settings-account-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .settings-profile {
+    flex: 1;
+  }
+
+  .settings-account-actions {
+    flex-direction: column;
+  }
+
+  .settings-account-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .settings-account-row .settings-outline-button {
+    flex-shrink: 0;
+  }
+}
+}
+.settings-account-row .settings-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  text-align: center;
+  gap: 8px;
+}
+
+.settings-account-row .settings-profile > div:last-child {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 5px;
+}
+
+.settings-account-actions {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 10px;
+}
+
+.settings-account-actions button {
+  width: 100%;
+  justify-content: center;
+}
