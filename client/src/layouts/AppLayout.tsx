@@ -1,4 +1,5 @@
 
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import {
   ScanLine,
@@ -15,7 +16,37 @@ const navigation = [
   { name: 'Settings', path: '/settings', icon: Settings },
 ]
 
+type GoogleUser = {
+  name: string
+  email: string
+  picture: string
+}
+
+const API_URL =
+  import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
 export default function AppLayout() {
+  const [user, setUser] = useState<GoogleUser | null>(null)
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/auth/me`)
+
+        if (!response.ok) {
+          throw new Error('Unable to fetch Google profile')
+        }
+
+        const data = await response.json()
+        setUser(data.user)
+      } catch (error) {
+        console.error('Profile loading error:', error)
+      }
+    }
+
+    fetchProfile()
+  }, [])
+
   return (
     <div className="app-shell">
 
@@ -57,6 +88,7 @@ export default function AppLayout() {
       {/* Main Content */}
       <main className="main-area">
         <header className="top-header">
+
           <div className="mobile-brand">
             <img src="/logo.png" alt="AEGIS" />
             <span>AEGIS</span>
@@ -64,6 +96,30 @@ export default function AppLayout() {
 
           <div className="header-right">
             <span className="account-label">My Workspace</span>
+
+            <div className="header-divider" />
+
+            <div className="header-user">
+              <div className="header-user-info">
+                <span>Welcome back,</span>
+                <strong>{user?.name || 'Loading...'}</strong>
+              </div>
+
+              {user?.picture ? (
+  <img
+    src={user.picture}
+    alt="Profile"
+    className="header-avatar"
+    onError={(e) => {
+      e.currentTarget.style.display = 'none'
+    }}
+  />
+) : (
+  <div className="header-avatar header-avatar-fallback">
+    {user?.name?.charAt(0).toUpperCase() || 'G'}
+  </div>
+)}
+            </div>
           </div>
         </header>
 

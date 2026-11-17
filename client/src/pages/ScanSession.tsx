@@ -13,30 +13,45 @@ import {
   Power,
 } from 'lucide-react'
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
 type ScanImage = {
   id: string
   file: File
   preview: string
 }
 
+type ProcessResponse = {
+  status: 'saved' | 'review'
+  success?: boolean
+  message?: string
+}
+
 export default function ScanSession() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { sheetName } = location.state || {}
+
+  const { sheetId, sheetName } = location.state || {}
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const latestImageRef = useRef<ScanImage | null>(null)
+  const mountedRef = useRef(true)
 
   const [cameraReady, setCameraReady] = useState(false)
   const [cameraError, setCameraError] = useState('')
+
   const [scanned, setScanned] = useState(0)
-  const [added] = useState(0)
-  const [needsReview] = useState(0)
+  const [added, setAdded] = useState(0)
+  const [needsReview, setNeedsReview] = useState(0)
+
   const [latestImage, setLatestImage] = useState<ScanImage | null>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
+
   const [showTerminate, setShowTerminate] = useState(false)
+
   const [toast, setToast] = useState('')
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info')
 
@@ -44,23 +59,30 @@ export default function ScanSession() {
     message: string,
     type: 'success' | 'error' | 'info' = 'info'
   ) => {
+    if (!mountedRef.current) return
+
     setToast(message)
     setToastType(type)
   }
 
+  // Stop the active camera stream.
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach(track => track.stop())
     streamRef.current = null
     setCameraReady(false)
   }, [])
 
+  // Start the device camera.
   const startCamera = useCallback(async () => {
     setCameraError('')
     setCameraReady(false)
+
     stopCamera()
 
     if (!navigator.mediaDevices?.getUserMedia) {
-      setCameraError('Camera is unavailable. Please upload an image instead.')
+      setCameraError(
+        'Camera is unavailable. Please upload an image instead.'
+      )
       return
     }
 
@@ -74,22 +96,35 @@ export default function ScanSession() {
         },
       })
 
+      if (!mountedRef.current) {
+        stream.getTracks().forEach(track => track.stop())
+        return
+      }
+
       streamRef.current = stream
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream
         await videoRef.current.play()
-        setCameraReady(true)
+
+        if (mountedRef.current) {
+          setCameraReady(true)
+        }
       }
     } catch {
-      setCameraError(
-        'Allow camera access for this site in your browser settings, then try again. You can also upload photos instead.'
-      )
+      if (mountedRef.current) {
+        setCameraError(
+          'Allow camera access for this site in your browser settings, then try again. You can also upload photos instead.'
+        )
+      }
     }
   }, [stopCamera])
 
+  // Validate session and initialize camera.
   useEffect(() => {
-    if (!sheetName) {
+    mountedRef.current = true
+
+    if (!sheetId || !sheetName) {
       navigate('/', { replace: true })
       return
     }
@@ -97,14 +132,88 @@ export default function ScanSession() {
     startCamera()
 
     return () => {
+      mountedRef.current = false
+
       streamRef.current?.getTracks().forEach(track => track.stop())
+      streamRef.current = null
+
       if (latestImageRef.current) {
         URL.revokeObjectURL(latestImageRef.current.preview)
+        latestImageRef.current = null
       }
     }
-  }, [sheetName, navigate, startCamera])
+  }, [sheetId, sheetName, navigate, startCamera])
 
-  const setLatest = (file: File) => {
+  // Send an image to the backend and save its extracted data.
+  const processPrescription = async (file: File) => {
+    if (!sheetId) {
+      showMessage('Spreadsheet not selected. Please start again.', 'error')
+      return
+    }
+
+    setIsProcessing(true)
+    showMessage('Processing prescription...', 'info')
+
+    try {
+      const formData = new FormData()
+
+      formData.append('image', file)
+      formData.append('sheetId', sheetId)
+
+      const response = await fetch(
+        `${API_URL}/api/prescriptions/process`,
+        {
+          method: 'POST',
+          body: formData,
+        }
+      )
+
+      const data: ProcessResponse = await response.json()
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || 'Failed to process prescription.'
+        )
+      }
+
+      if (data.status === 'saved') {
+        setAdded(count => count + 1)
+
+        showMessage(
+          data.message || 'Prescription successfully added to your spreadsheet.',
+          'success'
+        )
+      } else if (data.status === 'review') {
+        setNeedsReview(count => count + 1)
+
+        showMessage(
+          data.message || 'Prescription needs review. Some details could not be extracted.',
+          'info'
+        )
+      } else {
+        throw new Error('Unexpected response from the server.')
+      }
+    } catch (error) {
+      showMessage(
+        error instanceof Error
+          ? error.message
+          : 'Something went wrong while processing the prescription.',
+        'error'
+      )
+    } finally {
+      if (mountedRef.current) {
+        setIsProcessing(false)
+      }
+    }
+  }
+
+  // Store the latest image and immediately process it.
+  const setLatest = async (file: File) => {
+    if (isProcessing) {
+      showMessage('Please wait until the current image is processed.', 'info')
+      return
+    }
+
     if (latestImageRef.current) {
       URL.revokeObjectURL(latestImageRef.current.preview)
     }
@@ -117,44 +226,64 @@ export default function ScanSession() {
 
     latestImageRef.current = image
     setLatestImage(image)
+
     setScanned(count => count + 1)
 
-    // Placeholder until the backend processing API is connected.
-    showMessage('Image captured. Ready for processing.', 'info')
+    await processPrescription(file)
   }
 
+  // Capture a photo from the live camera.
   const capturePhoto = () => {
     const video = videoRef.current
     const canvas = canvasRef.current
 
-    if (!video || !canvas || !video.videoWidth) return
+    if (isProcessing) return
+
+    if (!video || !canvas || !video.videoWidth) {
+      showMessage('Camera is not ready. Please try again.', 'error')
+      return
+    }
 
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
 
     const context = canvas.getContext('2d')
-    if (!context) return
+
+    if (!context) {
+      showMessage('Could not access image canvas.', 'error')
+      return
+    }
 
     context.drawImage(video, 0, 0, canvas.width, canvas.height)
 
-    canvas.toBlob(blob => {
-      if (!blob) {
-        showMessage('Could not capture image. Please try again.', 'error')
-        return
-      }
+    canvas.toBlob(
+      async blob => {
+        if (!blob) {
+          showMessage('Could not capture image. Please try again.', 'error')
+          return
+        }
 
-      const file = new File(
-        [blob],
-        `prescription-${Date.now()}.jpg`,
-        { type: 'image/jpeg' }
-      )
+        const file = new File(
+          [blob],
+          `prescription-${Date.now()}.jpg`,
+          { type: 'image/jpeg' }
+        )
 
-      setLatest(file)
-    }, 'image/jpeg', 0.92)
+        await setLatest(file)
+      },
+      'image/jpeg',
+      0.92
+    )
   }
 
-  const handleUpload = (files: FileList | null) => {
+  // Validate and process an uploaded image.
+  const handleUpload = async (files: FileList | null) => {
     if (!files?.length) return
+
+    if (isProcessing) {
+      showMessage('Please wait until the current image is processed.', 'info')
+      return
+    }
 
     const file = files[0]
 
@@ -168,15 +297,16 @@ export default function ScanSession() {
       return
     }
 
-    setLatest(file)
+    await setLatest(file)
   }
 
+  // End the scanning session.
   const terminateSession = () => {
     stopCamera()
     navigate('/')
   }
 
-  if (!sheetName) return null
+  if (!sheetName || !sheetId) return null
 
   return (
     <main className="camera-fullscreen">
@@ -259,10 +389,12 @@ export default function ScanSession() {
               <strong>{scanned}</strong>
               <span>Scanned</span>
             </div>
+
             <div>
               <strong>{added}</strong>
               <span>Added to sheet</span>
             </div>
+
             <div>
               <strong>{needsReview}</strong>
               <span>Needs review</span>
@@ -272,6 +404,7 @@ export default function ScanSession() {
           {/* Document alignment frame */}
           <div className="camera-frame-area">
             <p>Keep the entire prescription inside the frame</p>
+
             <div className="camera-document-frame">
               <span className="camera-corner top-left" />
               <span className="camera-corner top-right" />
@@ -285,6 +418,7 @@ export default function ScanSession() {
             <button
               className="camera-tool-button"
               onClick={() => fileInputRef.current?.click()}
+              disabled={isProcessing}
             >
               <Upload size={23} />
               <span>Upload</span>
@@ -294,6 +428,7 @@ export default function ScanSession() {
               className="camera-shutter"
               onClick={capturePhoto}
               aria-label="Capture prescription"
+              disabled={isProcessing}
             >
               <span><Camera size={27} /></span>
             </button>
@@ -309,12 +444,14 @@ export default function ScanSession() {
                   <ImagePlus size={22} />
                 </div>
               )}
+
               <span>Latest</span>
             </div>
           </footer>
         </>
       )}
 
+      {/* Image input */}
       <input
         ref={fileInputRef}
         type="file"
@@ -336,7 +473,9 @@ export default function ScanSession() {
           ) : (
             <Camera size={18} />
           )}
+
           <span>{toast}</span>
+
           <button onClick={() => setToast('')} aria-label="Dismiss">
             <X size={15} />
           </button>
@@ -348,7 +487,9 @@ export default function ScanSession() {
         <div className="camera-confirm-overlay">
           <div className="camera-confirm-dialog">
             <Power size={24} />
+
             <h2>Terminate scanning session?</h2>
+
             <p>
               The camera will close and the session will end.
               Any image not saved to the spreadsheet may be lost.
@@ -357,7 +498,11 @@ export default function ScanSession() {
             <button onClick={() => setShowTerminate(false)}>
               Continue scanning
             </button>
-            <button className="confirm-terminate" onClick={terminateSession}>
+
+            <button
+              className="confirm-terminate"
+              onClick={terminateSession}
+            >
               Terminate session
             </button>
           </div>

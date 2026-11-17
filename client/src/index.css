@@ -1,5 +1,37 @@
 @import "tailwindcss";
 
+:root {
+  font-family: Inter, system-ui, sans-serif;
+
+  --app-bg: #f5f6f7;
+  --surface: #ffffff;
+
+  --text-primary: #202a30;
+  --text-secondary: #748087;
+
+  --accent: #087568;
+  --accent-hover: #065f55;
+
+  --border: #e3e7e9;
+
+  --radius-sm: 6px;
+  --radius-md: 9px;
+  --radius-lg: 12px;
+
+  --page-padding: 24px;
+  --section-gap: 24px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--app-bg);
+  color: var(--text-primary);
+}
+
 
 
 * {
@@ -4581,3 +4613,559 @@ body {
   }
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.header-divider {
+  width: 1px;
+  height: 30px;
+  background: var(--border);
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.header-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: right;
+}
+
+.header-user-info span {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.header-user-info strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.header-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border);
+}
+
+.header-avatar-fallback {
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  background: var(--app-bg);
+}
+
+@media (max-width: 600px) {
+  .header-right {
+    gap: 10px;
+  }
+
+  .account-label,
+  .header-divider {
+    display: none;
+  }
+
+  .header-user-info strong {
+    max-width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .header-avatar {
+    width: 34px;
+    height: 34px;
+  }
+}
+.scan-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 760px;
+}
+
+/* Camera card */
+
+.camera-action-card {
+  width: 100%;
+  padding: 20px;
+  text-align: left;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.camera-action-card:hover,
+.upload-action-card:hover {
+  border-color: var(--accent);
+}
+
+.camera-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.section-number {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  color: var(--text-secondary);
+}
+
+.camera-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  color: var(--text-secondary);
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+.camera-preview {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 260px;
+  overflow: hidden;
+  background: #f5f8f8;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.camera-preview-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  text-align: center;
+  z-index: 1;
+}
+
+.camera-icon-circle {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  margin-bottom: 5px;
+  color: var(--accent);
+  background: #e7f1ef;
+  border: 1px solid #d5e6e2;
+  border-radius: 50%;
+}
+
+.camera-preview-content strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.camera-preview-content > span {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.camera-open-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 10px;
+  padding: 10px 17px;
+  color: white;
+  background: var(--accent);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.camera-action-card:hover .camera-open-label {
+  background: var(--accent-hover);
+}
+
+/* Four document framing corners */
+
+.scan-corners span {
+  position: absolute;
+  width: 25px;
+  height: 25px;
+  border-color: #a9c9c3;
+  border-style: solid;
+}
+
+.scan-corners span:nth-child(1) {
+  top: 18px;
+  left: 18px;
+  border-width: 2px 0 0 2px;
+  border-top-left-radius: 5px;
+}
+
+.scan-corners span:nth-child(2) {
+  top: 18px;
+  right: 18px;
+  border-width: 2px 2px 0 0;
+  border-top-right-radius: 5px;
+}
+
+.scan-corners span:nth-child(3) {
+  bottom: 18px;
+  left: 18px;
+  border-width: 0 0 2px 2px;
+  border-bottom-left-radius: 5px;
+}
+
+.scan-corners span:nth-child(4) {
+  bottom: 18px;
+  right: 18px;
+  border-width: 0 2px 2px 0;
+  border-bottom-right-radius: 5px;
+}
+
+/* Camera card footer */
+
+.camera-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 18px;
+}
+
+.camera-card-footer h3,
+.upload-card-content h3 {
+  margin: 0 0 5px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.camera-card-footer p,
+.upload-card-content p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.camera-card-footer > svg {
+  color: var(--accent);
+}
+
+/* Upload card */
+
+.upload-action-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 19px;
+  text-align: left;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.upload-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  color: var(--accent);
+  background: #eaf3f1;
+  border-radius: var(--radius-md);
+}
+
+.upload-card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.upload-card-content .section-number {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.upload-card-action {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .camera-action-card {
+    padding: 14px;
+  }
+
+  .camera-preview {
+    min-height: 230px;
+  }
+
+  .upload-action-card {
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .upload-card-action {
+    font-size: 0;
+  }
+
+  .upload-card-action svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* Upload session header */
+.upload-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  min-height: 64px;
+  padding: 0 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.upload-topbar .back-button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.upload-topbar .back-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.upload-destination {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.upload-destination svg {
+  flex-shrink: 0;
+}
+
+.upload-destination span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Dynamic bottom footer */
+.upload-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 20px max(14px, env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+.process-upload-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 46px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: white;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.process-upload-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Progress panel */
+.upload-progress-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  width: 100%;
+}
+
+.upload-progress-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.upload-progress-heading > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.upload-progress-heading strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.upload-progress-heading span {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.upload-progress-heading .upload-progress-percent {
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Progress bar */
+.upload-progress-track {
+  width: 100%;
+  height: 7px;
+  overflow: hidden;
+  background: #e9eeee;
+  border-radius: 20px;
+}
+
+.upload-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 20px;
+  transition: width 0.25s ease;
+}
+
+/* Pause / Continue button */
+.upload-pause-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 43px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: white;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.upload-pause-button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+/* Final counts */
+.upload-finished-panel {
+  gap: 12px;
+}
+
+.upload-final-counts {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 3px;
+}
+
+.upload-final-counts span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.upload-final-counts .saved-count {
+  color: #087568;
+}
+
+.upload-final-counts .review-count {
+  color: #a66b16;
+}
+
+.upload-final-counts .failed-count {
+  color: #c0392b;
+}
+
+/* Disabled upload area during processing */
+.upload-dropzone.disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.upload-spin {
+  animation: upload-spin 1s linear infinite;
+}
+
+@keyframes upload-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* No bottom navigation on upload session */
+.app-shell:has(.upload-workspace) .mobile-nav {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .upload-topbar {
+    min-height: 58px;
+    padding: 0 15px;
+  }
+
+  .upload-footer {
+    padding: 12px 15px max(12px, env(safe-area-inset-bottom));
+  }
+}

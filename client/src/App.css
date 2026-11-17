@@ -182,3 +182,75 @@
     border-right-color: var(--border);
   }
 }
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.header-divider {
+  width: 1px;
+  height: 30px;
+  background: var(--border);
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.header-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: right;
+}
+
+.header-user-info span {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.header-user-info strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.header-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border);
+}
+
+.header-avatar-fallback {
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  background: var(--app-bg);
+}
+
+@media (max-width: 600px) {
+  .header-right {
+    gap: 10px;
+  }
+
+  .account-label,
+  .header-divider {
+    display: none;
+  }
+
+  .header-user-info strong {
+    max-width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .header-avatar {
+    width: 34px;
+    height: 34px;
+  }
+}

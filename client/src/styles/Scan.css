@@ -1,0 +1,714 @@
+
+/* ========================================
+   SCAN PAGE
+======================================== */
+
+.scan-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 760px;
+}
+
+/* Page heading */
+
+.page-heading {
+  margin-bottom: 22px;
+}
+
+.page-heading h1 {
+  margin-bottom: 10px;
+}
+
+.page-heading p {
+  margin-bottom: 0;
+}
+
+/* ========================================
+   PRIMARY CAMERA CARD
+======================================== */
+
+.camera-action-card {
+  width: 100%;
+  padding: 16px;
+  text-align: left;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.camera-action-card:hover,
+.upload-action-card:hover {
+  border-color: var(--accent);
+}
+
+.camera-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.section-number {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  color: var(--text-secondary);
+}
+
+.camera-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  color: var(--text-secondary);
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+/* Camera preview */
+
+.camera-preview {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 205px;
+  overflow: hidden;
+  background: #f5f8f8;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.camera-preview-content {
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  text-align: center;
+}
+
+.camera-icon-circle {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 5px;
+  color: var(--accent);
+  background: #e7f1ef;
+  border: 1px solid #d5e6e2;
+  border-radius: 50%;
+}
+
+.camera-preview-content > span {
+  max-width: 240px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.camera-open-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin-top: 4px;
+  padding: 9px 17px;
+  color: white;
+  background: var(--accent);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.camera-action-card:hover .camera-open-label {
+  background: var(--accent-hover);
+}
+
+/* Document framing corners */
+
+.scan-corners span {
+  position: absolute;
+  width: 25px;
+  height: 25px;
+  border-color: #a9c9c3;
+  border-style: solid;
+}
+
+.scan-corners span:nth-child(1) {
+  top: 18px;
+  left: 18px;
+  border-width: 2px 0 0 2px;
+  border-top-left-radius: 5px;
+}
+
+.scan-corners span:nth-child(2) {
+  top: 18px;
+  right: 18px;
+  border-width: 2px 2px 0 0;
+  border-top-right-radius: 5px;
+}
+
+.scan-corners span:nth-child(3) {
+  bottom: 18px;
+  left: 18px;
+  border-width: 0 0 2px 2px;
+  border-bottom-left-radius: 5px;
+}
+
+.scan-corners span:nth-child(4) {
+  right: 18px;
+  bottom: 18px;
+  border-width: 0 2px 2px 0;
+  border-bottom-right-radius: 5px;
+}
+
+/* Camera card footer */
+
+.camera-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 13px;
+}
+
+.camera-card-footer h3,
+.upload-card-content h3 {
+  margin: 0 0 5px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.camera-card-footer p,
+.upload-card-content p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* ========================================
+   SECONDARY UPLOAD CARD
+======================================== */
+
+.upload-action-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 100px;
+  padding: 14px;
+  text-align: left;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.upload-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  align-self: center;
+  width: 52px;
+  height: 52px;
+  color: var(--accent);
+  background: #eaf3f1;
+  border-radius: var(--radius-md);
+}
+
+.upload-card-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.upload-card-content .section-number {
+  display: block;
+  margin-bottom: 2px;
+}
+
+/* ========================================
+   SPREADSHEET MODAL
+======================================== */
+
+.sheet-modal {
+  display: flex;
+  flex-direction: column;
+  max-height: min(85vh, 760px);
+  overflow: hidden;
+}
+
+/* Modal header */
+
+.sheet-modal-header {
+  padding: 22px 20px 16px;
+}
+
+/* Existing / Create tabs */
+
+.sheet-mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  padding: 4px;
+  margin: 0 20px;
+  background: #f3f5f5;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.sheet-mode-switch button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  min-height: 39px;
+  padding: 8px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.sheet-mode-switch button.selected {
+  color: var(--accent);
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  font-weight: 600;
+}
+
+.sheet-mode-switch button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ========================================
+   EXISTING SPREADSHEETS
+======================================== */
+
+.modal-sheet-content {
+  min-height: 0;
+  padding: 14px 20px 18px;
+  overflow-y: auto;
+}
+
+/* Search */
+
+.sheet-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 42px;
+  padding: 0 12px;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.sheet-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  color: var(--text-primary);
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font: inherit;
+  font-size: 13px;
+}
+
+/* Sheet list */
+
+.sheet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.sheet-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 68px;
+  padding: 12px;
+  text-align: left;
+  color: var(--text-primary);
+  background: white;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.sheet-option:hover {
+  background: #f8faf9;
+  border-color: var(--border);
+}
+
+.sheet-option.active {
+  background: #f0f7f5;
+  border-color: var(--accent);
+}
+
+.sheet-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  color: var(--accent);
+  background: #edf5f3;
+  border-radius: 8px;
+}
+
+.sheet-info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sheet-info strong {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sheet-info > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+/* Selection radio */
+
+.sheet-radio {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 19px;
+  height: 19px;
+  border: 1.5px solid #c8d0d0;
+  border-radius: 50%;
+}
+
+.sheet-option.active .sheet-radio {
+  border-color: var(--accent);
+}
+
+.sheet-radio > span {
+  display: grid;
+  place-items: center;
+  width: 11px;
+  height: 11px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+/* Empty and loading states */
+
+.sheet-empty {
+  padding: 25px 12px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+/* ========================================
+   CREATE NEW SPREADSHEET
+======================================== */
+
+.modal-new-sheet {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+/* Hide the old plus icon */
+
+.modal-new-sheet .new-sheet-icon {
+  display: none;
+}
+
+.modal-new-sheet h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.modal-new-sheet > p {
+  margin: 0 0 22px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Spreadsheet name */
+
+.modal-new-sheet > label:not(.header-option) {
+  display: block;
+  margin: 0 0 8px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.modal-new-sheet > input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 43px;
+  padding: 0 12px;
+  margin: 0 0 20px;
+  color: var(--text-primary);
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+.modal-new-sheet > input:focus {
+  border-color: var(--accent);
+}
+
+/* Add column headers option */
+
+.modal-new-sheet .header-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 14px;
+  margin: 0;
+  background: #f8faf9;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.modal-new-sheet .header-option > input {
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+  margin: 1px 0 0;
+  accent-color: var(--accent);
+}
+
+.modal-new-sheet .header-option > span {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.modal-new-sheet .header-option strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.modal-new-sheet .header-option small {
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+/* ========================================
+   MODAL FOOTER
+======================================== */
+
+.sheet-modal-footer {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 12px;
+  padding: 13px 20px 16px;
+  background: white;
+  border-top: 1px solid var(--border);
+}
+
+/* Selected destination */
+
+.modal-destination {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.modal-destination span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Footer buttons */
+
+.modal-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 10px;
+  width: 100%;
+}
+
+.modal-buttons button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 43px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.modal-buttons .secondary-button {
+  color: var(--text-primary);
+  background: white;
+  border: 1px solid var(--border);
+}
+
+.modal-buttons .primary-button {
+  color: white;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  font-weight: 600;
+}
+
+.modal-buttons .primary-button:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+/* ========================================
+   ERRORS AND DISABLED STATES
+======================================== */
+
+.sheet-error {
+  padding: 0 20px;
+  margin: 10px 0;
+  color: #c0392b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.primary-button:disabled,
+.modal-buttons button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modal-close:disabled,
+.sheet-mode-switch button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ========================================
+   RESPONSIVE LAYOUT
+======================================== */
+
+@media (max-width: 600px) {
+  .page-heading {
+    margin-bottom: 22px;
+  }
+
+  .camera-action-card {
+    padding: 14px;
+  }
+
+  .camera-preview {
+    min-height: 205px;
+  }
+
+  .upload-action-card {
+    min-height: 100px;
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .upload-icon {
+    width: 52px;
+    height: 52px;
+  }
+
+  .sheet-modal {
+    max-height: 88dvh;
+  }
+
+  .sheet-modal-header {
+    padding: 19px 17px 14px;
+  }
+
+  .sheet-mode-switch {
+    margin: 0 17px;
+  }
+
+  .modal-sheet-content {
+    padding: 12px 17px;
+  }
+
+  .modal-new-sheet {
+    padding: 20px 17px;
+  }
+
+  .sheet-modal-footer {
+    padding: 12px 17px 15px;
+  }
+
+  .modal-buttons {
+    grid-template-columns: 1fr 1.6fr;
+  }
+
+  .modal-buttons button {
+    padding: 9px 7px;
+    font-size: 11px;
+  }
+}
+
+/* Respect reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+  .camera-action-card,
+  .upload-action-card,
+  .sheet-option,
+  .sheet-mode-switch button {
+    transition: none;
+  }
+}

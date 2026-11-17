@@ -6,4 +6,4 @@ tmp/*
 !tmp/.gitkeep
 !data/.gitkeep
 /server/node_modules
-/server/data/*
+/server/data/

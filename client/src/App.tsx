@@ -1,10 +1,11 @@
 
 import { useEffect, useState } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 
 import SplashScreen from './components/SplashScreen'
 import AppLayout from './layouts/AppLayout'
 
+import SignIn from './pages/SignIn'
 import Scan from './pages/Scan'
 import Activity from './pages/Activity'
 import Review from './pages/Review'
@@ -27,19 +28,25 @@ export default function App() {
     return <SplashScreen />
   }
 
-
   return (
     <Routes>
+      {/* Sign-in */}
+      <Route path="/signin" element={<SignIn />} />
+
+      {/* Scanner sessions */}
       <Route path="/scan-session" element={<ScanSession />} />
       <Route path="/upload-session" element={<UploadSession />} />
 
+      {/* Main application */}
       <Route element={<AppLayout />}>
         <Route path="/" element={<Scan />} />
         <Route path="/activity" element={<Activity />} />
         <Route path="/review" element={<Review />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
+
+      {/* Default route */}
+      <Route path="*" element={<Navigate to="/signin" replace />} />
     </Routes>
   )
-
 }

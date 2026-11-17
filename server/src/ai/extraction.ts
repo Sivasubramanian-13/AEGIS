@@ -1,23 +1,25 @@
 
 export const extractionPrompt = `
-Extract the following fields from the handwritten prescription:
+Extract these fields from the handwritten prescription:
 
-1. Date
-2. Patient Name
-3. Case Sheet Ref.
-4. Name of Medicine
-5. Dose/Quantity
+- date: DD-MM-YYYY format. If year is missing or unclear, leave empty.
+- patient_name: Preserve original spelling.
+- case_sheet_ref: Allow numbers and forward slashes (/).
+- medicine: Include the complete medicine name and its strength/code,
+  including numbers or letters immediately following the name.
+- dose_quantity: ONLY the number explicitly circled or rounded
+  on the prescription.
 
 Rules:
-- Each prescription contains exactly one medicine.
-- Preserve the original medicine name and its strength.
-- Do not confuse medicine strength with dose or quantity.
-- Never guess or invent missing information.
-- If a field is uncertain or unreadable, return an empty string.
-- Preserve the original spelling as closely as possible.
+- Exactly one medicine per prescription.
+- Never confuse medicine strength (e.g. 40, 500, 50MCG)
+  with the circled quantity (e.g. 60).
+- Do not extract dosage instructions such as 1-0-1 as quantity.
+- Never guess or invent information.
+- Leave uncertain or unreadable fields empty.
+- Preserve original spelling and values.
 - Return only valid JSON.
 
-Required JSON format:
 {
   "date": "",
   "patient_name": "",

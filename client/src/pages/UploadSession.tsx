@@ -1,6 +1,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import type { DragEvent, KeyboardEvent } from 'react'
 import {
   ArrowLeft,
   Upload,
@@ -12,9 +13,15 @@ import {
   AlertCircle,
   Clock3,
   LoaderCircle,
-  RefreshCw,
   FileSpreadsheet,
+  Pause,
+  Play,
 } from 'lucide-react'
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024
+const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
 type ImageStatus = 'queued' | 'processing' | 'saved' | 'review' | 'failed'
 
@@ -27,14 +34,11 @@ type UploadImage = {
 }
 
 type ProcessResponse = {
-  success: boolean
+  success?: boolean
   status?: 'saved' | 'review'
   message?: string
   row?: Record<string, string>
 }
-
-const MAX_FILE_SIZE = 10 * 1024 * 1024
-const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
 export default function UploadSession() {
   const navigate = useNavigate()
@@ -44,11 +48,17 @@ export default function UploadSession() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const imagesRef = useRef<UploadImage[]>([])
   const processingRef = useRef(false)
+  const pauseRequestedRef = useRef(false)
+  const resumeRef = useRef<(() => void) | null>(null)
+  const mountedRef = useRef(true)
 
   const [images, setImages] = useState<UploadImage[]>([])
   const [error, setError] = useState('')
   const [isDragging, setIsDragging] = useState(false)
+
   const [isProcessing, setIsProcessing] = useState(false)
+  const [isPaused, setIsPaused] = useState(false)
+  const [pauseRequested, setPauseRequested] = useState(false)
   const [processingComplete, setProcessingComplete] = useState(false)
 
   useEffect(() => {
@@ -56,31 +66,41 @@ export default function UploadSession() {
   }, [images])
 
   useEffect(() => {
-    if (!sheetName) {
+    mountedRef.current = true
+
+    if (!sheetName || !sheetId) {
       navigate('/', { replace: true })
     }
-  }, [sheetName, navigate])
 
-  useEffect(() => {
     return () => {
-      imagesRef.current.forEach(image => URL.revokeObjectURL(image.preview))
-    }
-  }, [])
+      mountedRef.current = false
+      resumeRef.current?.()
 
-  if (!sheetName) return null
+      imagesRef.current.forEach(image => {
+        URL.revokeObjectURL(image.preview)
+      })
+    }
+  }, [sheetName, sheetId, navigate])
+
+  if (!sheetName || !sheetId) return null
 
   const updateImage = (
     id: string,
     updates: Partial<UploadImage>
   ) => {
-    setImages(previous =>
-      previous.map(image =>
+    setImages(previous => {
+      const updated = previous.map(image =>
         image.id === id ? { ...image, ...updates } : image
       )
-    )
+      imagesRef.current = updated
+      return updated
+    })
   }
 
+  // Add selected images after validating their format and size.
   const addFiles = (fileList: FileList | File[]) => {
+    if (processingRef.current) return
+
     const selectedFiles = Array.from(fileList)
     const validImages: UploadImage[] = []
     const errors: string[] = []
@@ -105,7 +125,12 @@ export default function UploadSession() {
     })
 
     if (validImages.length) {
-      setImages(previous => [...previous, ...validImages])
+      setImages(previous => {
+        const updated = [...previous, ...validImages]
+        imagesRef.current = updated
+        return updated
+      })
+
       setProcessingComplete(false)
     }
 
@@ -113,55 +138,79 @@ export default function UploadSession() {
   }
 
   const removeImage = (id: string) => {
-    const image = images.find(item => item.id === id)
-    if (image) URL.revokeObjectURL(image.preview)
+    if (processingRef.current) return
 
-    setImages(previous => previous.filter(item => item.id !== id))
+    const image = imagesRef.current.find(item => item.id === id)
+
+    if (image) {
+      URL.revokeObjectURL(image.preview)
+    }
+
+    setImages(previous => {
+      const updated = previous.filter(item => item.id !== id)
+      imagesRef.current = updated
+      return updated
+    })
+
     setProcessingComplete(false)
   }
 
   const clearImages = () => {
-    images.forEach(image => URL.revokeObjectURL(image.preview))
+    if (processingRef.current) return
+
+    imagesRef.current.forEach(image => {
+      URL.revokeObjectURL(image.preview)
+    })
+
+    imagesRef.current = []
     setImages([])
     setError('')
     setProcessingComplete(false)
   }
 
+  // Process one image. The next image is not started until this finishes.
   const processOneImage = async (image: UploadImage) => {
     updateImage(image.id, {
       status: 'processing',
-      message: 'Sending image for processing...',
+      message: 'Extracting prescription details...',
     })
 
     try {
       const formData = new FormData()
-      formData.append('image', image.file)
-      formData.append('sheetName', sheetName)
-      if (sheetId) formData.append('sheetId', sheetId)
 
-      const response = await fetch('/api/prescriptions/process', {
-        method: 'POST',
-        body: formData,
-      })
+      formData.append('image', image.file)
+      formData.append('sheetId', sheetId)
+
+      const response = await fetch(
+        `${API_URL}/api/prescriptions/process`,
+        {
+          method: 'POST',
+          body: formData,
+        }
+      )
 
       const result = await response.json() as ProcessResponse
 
-      if (!response.ok || !result.success) {
+      if (!response.ok) {
         throw new Error(result.message || 'Processing failed.')
       }
 
       if (result.status === 'saved') {
         updateImage(image.id, {
           status: 'saved',
-          message: result.message || 'Row successfully added to the spreadsheet.',
+          message: result.message ||
+            'Row successfully added to the spreadsheet.',
         })
       } else if (result.status === 'review') {
         updateImage(image.id, {
           status: 'review',
-          message: result.message || 'Please review the extracted fields.',
+          message: result.message ||
+            'Some fields need manual review.',
         })
       } else {
-        throw new Error('The server returned an unrecognized processing status.')
+        throw new Error(
+          result.message || 'Unexpected server response.'
+        )
       }
     } catch (err) {
       updateImage(image.id, {
@@ -173,55 +222,140 @@ export default function UploadSession() {
     }
   }
 
-  const processQueue = async (retryOnly = false) => {
+  // Wait here if the user has paused the queue.
+  const waitForResume = async () => {
+    if (!pauseRequestedRef.current) return
+
+    if (mountedRef.current) {
+      setIsPaused(true)
+      setPauseRequested(false)
+    }
+
+    await new Promise<void>(resolve => {
+      resumeRef.current = resolve
+    })
+
+    resumeRef.current = null
+  }
+
+  // Start processing, or resume from the next queued image.
+  const processQueue = async () => {
     if (processingRef.current) return
 
-    const queue = imagesRef.current.filter(image =>
-      retryOnly
-        ? image.status === 'failed'
-        : image.status === 'queued'
+    const queue = imagesRef.current.filter(
+      image => image.status === 'queued'
     )
 
     if (!queue.length) return
 
     processingRef.current = true
+    pauseRequestedRef.current = false
+
     setIsProcessing(true)
+    setIsPaused(false)
+    setPauseRequested(false)
     setProcessingComplete(false)
     setError('')
 
     try {
       for (const image of queue) {
+        await waitForResume()
+
+        if (!mountedRef.current) return
+
         await processOneImage(image)
+      }
+
+      if (mountedRef.current) {
+        setProcessingComplete(true)
       }
     } finally {
       processingRef.current = false
-      setIsProcessing(false)
-      setProcessingComplete(true)
+
+      if (mountedRef.current) {
+        setIsProcessing(false)
+        setIsPaused(false)
+        setPauseRequested(false)
+      }
+    }
+  }
+
+  // Pause after the currently active image has finished.
+  const pauseProcessing = () => {
+    if (!processingRef.current || pauseRequestedRef.current) return
+
+    pauseRequestedRef.current = true
+    setPauseRequested(true)
+  }
+
+  // Resume the queue without resubmitting completed images.
+  const continueProcessing = () => {
+    if (!processingRef.current || !isPaused) return
+
+    pauseRequestedRef.current = false
+    setIsPaused(false)
+    resumeRef.current?.()
+  }
+
+  const handleProcessButton = () => {
+    if (isPaused) {
+      continueProcessing()
+    } else if (isProcessing) {
+      pauseProcessing()
+    } else {
+      void processQueue()
+    }
+  }
+
+  const cancelSelection = () => {
+    if (processingRef.current) return
+    navigate('/')
+  }
+
+  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    setIsDragging(false)
+
+    if (!processingRef.current) {
+      addFiles(event.dataTransfer.files)
+    }
+  }
+
+  const handleDropzoneKeyDown = (
+    event: KeyboardEvent<HTMLDivElement>
+  ) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+
+      if (!processingRef.current) {
+        fileInputRef.current?.click()
+      }
     }
   }
 
   const selectedCount = images.length
-  const savedCount = images.filter(image => image.status === 'saved').length
-  const reviewCount = images.filter(image => image.status === 'review').length
-  const failedCount = images.filter(image => image.status === 'failed').length
-  const queuedCount = images.filter(image => image.status === 'queued').length
-  const activeCount = images.filter(image => image.status === 'processing').length
 
-  const continueToReview = () => {
-    navigate('/review', {
-      state: {
-        sheetName,
-        sheetId,
-        processingComplete: true,
-      },
-    })
-  }
+  const savedCount = images.filter(
+    image => image.status === 'saved'
+  ).length
 
-  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault()
-    setIsDragging(false)
-    addFiles(event.dataTransfer.files)
-  }
+  const reviewCount = images.filter(
+    image => image.status === 'review'
+  ).length
+
+  const failedCount = images.filter(
+    image => image.status === 'failed'
+  ).length
+
+  const queuedCount = images.filter(
+    image => image.status === 'queued'
+  ).length
+
+  const completedCount = savedCount + reviewCount + failedCount
+
+  const progress = selectedCount > 0
+    ? Math.round((completedCount / selectedCount) * 100)
+    : 0
 
   const statusLabel: Record<ImageStatus, string> = {
     queued: 'Waiting',
@@ -233,30 +367,39 @@ export default function UploadSession() {
 
   return (
     <div className="upload-workspace">
+
+      {/* Header */}
       <header className="upload-topbar">
-        <button className="back-button" onClick={() => navigate('/')}>
-          <ArrowLeft size={17} />
-          Back
+        <button
+          className="back-button"
+          onClick={cancelSelection}
+          disabled={isProcessing}
+        >
+          <ArrowLeft size={18} />
+          <span>Back</span>
         </button>
 
         <div className="upload-destination">
-          <FileSpreadsheet size={16} />
+          <FileSpreadsheet size={17} />
           <span>{sheetName}</span>
         </div>
       </header>
 
       <main className="upload-content">
+
+        {/* Page heading */}
         <div className="page-heading">
           <span className="eyebrow">UPLOAD SESSION</span>
           <h1>Upload prescriptions</h1>
           <p>Choose photos from your device, or drop them here.</p>
         </div>
 
+        {/* Upload dropzone */}
         <div
-          className={`upload-dropzone ${isDragging ? 'dragging' : ''}`}
+          className={`upload-dropzone ${isDragging ? 'dragging' : ''} ${isProcessing ? 'disabled' : ''}`}
           onDragOver={event => {
             event.preventDefault()
-            setIsDragging(true)
+            if (!processingRef.current) setIsDragging(true)
           }}
           onDragLeave={event => {
             if (!event.currentTarget.contains(event.relatedTarget as Node)) {
@@ -264,22 +407,25 @@ export default function UploadSession() {
             }
           }}
           onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-          role="button"
-          tabIndex={0}
-          onKeyDown={event => {
-            if (event.key === 'Enter' || event.key === ' ') {
+          onClick={() => {
+            if (!processingRef.current) {
               fileInputRef.current?.click()
             }
           }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={handleDropzoneKeyDown}
         >
           <div className="upload-drop-icon">
             <ImagePlus size={26} />
           </div>
+
           <h2>Upload prescriptions</h2>
           <p>Choose photos from your device, or drop them here.</p>
+
           <span className="upload-browse-button">
-            <Plus size={16} /> Browse images
+            <Plus size={16} />
+            Browse images
           </span>
         </div>
 
@@ -289,8 +435,12 @@ export default function UploadSession() {
           accept="image/jpeg,image/png,image/webp"
           multiple
           hidden
+          disabled={isProcessing}
           onChange={event => {
-            if (event.target.files) addFiles(event.target.files)
+            if (event.target.files) {
+              addFiles(event.target.files)
+            }
+
             event.target.value = ''
           }}
         />
@@ -304,16 +454,23 @@ export default function UploadSession() {
           <div className="upload-error">
             <AlertCircle size={17} />
             <span>{error}</span>
-            <button onClick={() => setError('')} aria-label="Dismiss error">
+            <button
+              onClick={() => setError('')}
+              aria-label="Dismiss error"
+            >
               <X size={15} />
             </button>
           </div>
         )}
 
+        {/* Selected images */}
         <section className="upload-selected">
           <div className="upload-selected-heading">
             <div>
-              <h2>{selectedCount} photo{selectedCount === 1 ? '' : 's'} ready</h2>
+              <h2>
+                {selectedCount} photo{selectedCount === 1 ? '' : 's'} ready
+              </h2>
+
               {selectedCount > 0 && (
                 <p>
                   {savedCount} saved · {reviewCount} need review · {failedCount} failed
@@ -322,8 +479,12 @@ export default function UploadSession() {
             </div>
 
             {selectedCount > 0 && !isProcessing && (
-              <button className="text-button" onClick={clearImages}>
-                <Trash2 size={15} /> Clear all
+              <button
+                className="text-button"
+                onClick={clearImages}
+              >
+                <Trash2 size={15} />
+                Clear all
               </button>
             )}
           </div>
@@ -339,8 +500,14 @@ export default function UploadSession() {
               {images.map((image, index) => (
                 <div className="upload-image-card" key={image.id}>
                   <div className="upload-image-preview">
-                    <img src={image.preview} alt={`Prescription ${index + 1}`} />
-                    <span className="upload-image-number">{index + 1}</span>
+                    <img
+                      src={image.preview}
+                      alt={`Prescription ${index + 1}`}
+                    />
+
+                    <span className="upload-image-number">
+                      {index + 1}
+                    </span>
 
                     {!isProcessing && (
                       <button
@@ -361,29 +528,28 @@ export default function UploadSession() {
 
                   <div className={`upload-image-status ${image.status}`}>
                     {image.status === 'queued' && <Clock3 size={15} />}
+
                     {image.status === 'processing' && (
                       <LoaderCircle className="upload-spin" size={15} />
                     )}
-                    {image.status === 'saved' && <CheckCircle2 size={15} />}
-                    {image.status === 'review' && <AlertCircle size={15} />}
+
+                    {image.status === 'saved' && (
+                      <CheckCircle2 size={15} />
+                    )}
+
+                    {image.status === 'review' && (
+                      <AlertCircle size={15} />
+                    )}
+
                     {image.status === 'failed' && <X size={15} />}
+
                     <span>{statusLabel[image.status]}</span>
                   </div>
 
                   {image.message && (
-                    <p className="upload-image-message">{image.message}</p>
-                  )}
-
-                  {image.status === 'failed' && !isProcessing && (
-                    <button
-                      className="upload-retry-button"
-                      onClick={() => {
-                        updateImage(image.id, { status: 'queued', message: '' })
-                        setProcessingComplete(false)
-                      }}
-                    >
-                      <RefreshCw size={13} /> Retry
-                    </button>
+                    <p className="upload-image-message">
+                      {image.message}
+                    </p>
                   )}
                 </div>
               ))}
@@ -400,65 +566,126 @@ export default function UploadSession() {
             </div>
           )}
         </section>
-
-        {isProcessing && (
-          <div className="upload-processing-banner">
-            <LoaderCircle className="upload-spin" size={18} />
-            <span>Processing prescriptions one at a time. Please keep this page open.</span>
-          </div>
-        )}
-
-        {processingComplete && (
-          <div className="upload-completion-banner">
-            <CheckCircle2 size={18} />
-            <span>
-              Processing finished: {savedCount} saved, {reviewCount} need review,
-              {failedCount} failed.
-            </span>
-          </div>
-        )}
       </main>
 
+      {/* Dynamic bottom processing footer */}
       <footer className="upload-footer">
-        <div>
-          <strong>{selectedCount} photo{selectedCount === 1 ? '' : 's'} selected</strong>
-          <span>
-            {isProcessing
-              ? `${savedCount} saved · ${activeCount} processing`
-              : `Destination: ${sheetName}`}
-          </span>
-        </div>
 
-        {!processingComplete ? (
+        {/* Before processing */}
+        {!isProcessing && !processingComplete && (
           <button
             className="primary-button process-upload-button"
-            onClick={() => processQueue(false)}
-            disabled={selectedCount === 0 || isProcessing || queuedCount === 0}
+            onClick={handleProcessButton}
+            disabled={selectedCount === 0 || queuedCount === 0}
           >
-            {isProcessing ? (
-              <><LoaderCircle className="upload-spin" size={16} /> Processing...</>
-            ) : (
-              <>Process prescriptions <Upload size={16} /></>
-            )}
+            Process prescriptions
+            <Upload size={16} />
           </button>
-        ) : (
-          <div className="upload-footer-actions">
-            {failedCount > 0 && (
-              <button
-                className="upload-retry-all"
-                onClick={() => processQueue(true)}
-                disabled={isProcessing}
-              >
-                <RefreshCw size={15} /> Retry failed
-              </button>
-            )}
-            <button
-              className="primary-button"
-              onClick={continueToReview}
-              disabled={savedCount + reviewCount === 0}
+        )}
+
+        {/* During processing or paused */}
+        {isProcessing && (
+          <div className="upload-progress-panel">
+            <div className="upload-progress-heading">
+              <div>
+                <strong>
+                  {isPaused
+                    ? 'Processing paused'
+                    : pauseRequested
+                      ? 'Finishing current prescription...'
+                      : 'Processing prescriptions'}
+                </strong>
+
+                <span>
+                  {completedCount} of {selectedCount} processed
+                </span>
+              </div>
+
+              <strong className="upload-progress-percent">
+                {progress}%
+              </strong>
+            </div>
+
+            <div
+              className="upload-progress-track"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={selectedCount}
+              aria-valuenow={completedCount}
+              aria-label="Prescription processing progress"
             >
-              Review spreadsheet <ArrowLeft size={16} />
+              <div
+                className="upload-progress-fill"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+
+            <button
+              className="primary-button upload-pause-button"
+              onClick={handleProcessButton}
+              disabled={pauseRequested}
+            >
+              {isPaused ? (
+                <>
+                  <Play size={17} />
+                  Continue
+                </>
+              ) : pauseRequested ? (
+                <>
+                  <LoaderCircle className="upload-spin" size={16} />
+                  Pausing...
+                </>
+              ) : (
+                <>
+                  <Pause size={17} />
+                  Pause
+                </>
+              )}
             </button>
+          </div>
+        )}
+
+        {/* After processing */}
+        {processingComplete && (
+          <div className="upload-progress-panel upload-finished-panel">
+            <div className="upload-progress-heading">
+              <div>
+                <strong>Processing complete</strong>
+                <span>{completedCount} of {selectedCount} processed</span>
+              </div>
+
+              <strong className="upload-progress-percent">100%</strong>
+            </div>
+
+            <div
+              className="upload-progress-track"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={selectedCount}
+              aria-valuenow={completedCount}
+            >
+              <div
+                className="upload-progress-fill"
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            <div className="upload-final-counts">
+              <span className="saved-count">
+                <CheckCircle2 size={15} />
+                {savedCount} saved
+              </span>
+
+              <span className="review-count">
+                <AlertCircle size={15} />
+                {reviewCount} review
+              </span>
+
+              <span className="failed-count">
+                <X size={15} />
+                {failedCount} failed
+              </span>
+            </div>
           </div>
         )}
       </footer>
