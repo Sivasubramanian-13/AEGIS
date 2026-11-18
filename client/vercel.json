@@ -1,14 +1,11 @@
 {
-  "rewrites": [
+  "routes": [
     {
-      "source": "/(.*)",
-      "destination": "/index.html",
-      "missing": [
-        {
-          "type": "file",
-          "value": "/googlecb220bffa80cdeb8.html"
-        }
-      ]
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
