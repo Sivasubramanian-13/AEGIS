@@ -50,7 +50,9 @@ export default function Scan() {
       setSheetError('')
 
       try {
-        const response = await fetch(`${API_URL}/api/sheets`)
+        const response = await fetch(`${API_URL}/api/sheets`, {
+          credentials: 'include',
+        })
         const data = await response.json()
 
         if (!response.ok || !data.success) {
@@ -112,6 +114,7 @@ export default function Scan() {
 
         const response = await fetch(`${API_URL}/api/sheets`, {
           method: 'POST',
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -267,31 +270,31 @@ export default function Scan() {
               </button>
             </div>
 
-<div className="sheet-mode-switch">
-  <button
-    className={mode === 'existing' ? 'selected' : ''}
-    onClick={() => {
-      setMode('existing')
-      setSheetError('')
-    }}
-    disabled={creatingSheet}
-  >
-    <FileSpreadsheet size={16} />
-    Existing sheet
-  </button>
+            <div className="sheet-mode-switch">
+              <button
+                className={mode === 'existing' ? 'selected' : ''}
+                onClick={() => {
+                  setMode('existing')
+                  setSheetError('')
+                }}
+                disabled={creatingSheet}
+              >
+                <FileSpreadsheet size={16} />
+                Existing sheet
+              </button>
 
-  <button
-    className={mode === 'new' ? 'selected' : ''}
-    onClick={() => {
-      setMode('new')
-      setSheetError('')
-    }}
-    disabled={creatingSheet}
-  >
-    <Plus size={16} />
-    Create new
-  </button>
-</div>
+              <button
+                className={mode === 'new' ? 'selected' : ''}
+                onClick={() => {
+                  setMode('new')
+                  setSheetError('')
+                }}
+                disabled={creatingSheet}
+              >
+                <Plus size={16} />
+                Create new
+              </button>
+            </div>
 
             {mode === 'existing' ? (
               <div className="modal-sheet-content">
@@ -317,9 +320,8 @@ export default function Scan() {
                     filteredSheets.map(sheet => (
                       <button
                         key={sheet.id}
-                        className={`sheet-option ${
-                          selectedSheet === sheet.id ? 'active' : ''
-                        }`}
+                        className={`sheet-option ${selectedSheet === sheet.id ? 'active' : ''
+                          }`}
                         onClick={() => setSelectedSheet(sheet.id)}
                       >
                         <div className="sheet-icon">
@@ -332,17 +334,17 @@ export default function Scan() {
                             <Clock3 size={12} />
                             {sheet.modifiedTime
                               ? `Modified ${new Date(
-                                  sheet.modifiedTime
-                                ).toLocaleDateString()}`
+                                sheet.modifiedTime
+                              ).toLocaleDateString()}`
                               : 'Google spreadsheet'}
                           </span>
                         </div>
 
                         <span className="sheet-radio">
-  {selectedSheet === sheet.id && (
-    <span><span /></span>
-  )}
-</span>
+                          {selectedSheet === sheet.id && (
+                            <span><span /></span>
+                          )}
+                        </span>
                       </button>
                     ))
                   ) : (
@@ -393,47 +395,47 @@ export default function Scan() {
               <p className="sheet-error">{sheetError}</p>
             )}
 
-<div className="sheet-modal-footer">
-  <span className="modal-destination">
-    <FileSpreadsheet size={15} />
-    <span>
-      {mode === 'new'
-        ? newSheetName.trim() || 'New spreadsheet'
-        : sheets.find(sheet => sheet.id === selectedSheet)?.name ||
-          'Select a spreadsheet'}
-    </span>
-  </span>
+            <div className="sheet-modal-footer">
+              <span className="modal-destination">
+                <FileSpreadsheet size={15} />
+                <span>
+                  {mode === 'new'
+                    ? newSheetName.trim() || 'New spreadsheet'
+                    : sheets.find(sheet => sheet.id === selectedSheet)?.name ||
+                    'Select a spreadsheet'}
+                </span>
+              </span>
 
-  <div className="modal-buttons">
-    <button
-      className="secondary-button"
-      onClick={() => setAction(null)}
-      disabled={creatingSheet}
-    >
-      Cancel
-    </button>
+              <div className="modal-buttons">
+                <button
+                  className="secondary-button"
+                  onClick={() => setAction(null)}
+                  disabled={creatingSheet}
+                >
+                  Cancel
+                </button>
 
-    <button
-      className="primary-button"
-      onClick={continueToNextStep}
-      disabled={
-        loadingSheets ||
-        creatingSheet ||
-        (mode === 'new'
-          ? !newSheetName.trim()
-          : !selectedSheet ||
-            !sheets.some(sheet => sheet.id === selectedSheet))
-      }
-    >
-      {creatingSheet
-        ? 'Creating...'
-        : action === 'scan'
-          ? 'Continue to scanning'
-          : 'Continue to uploading'}
-      {!creatingSheet && <ArrowRight size={16} />}
-    </button>
-  </div>
-</div>
+                <button
+                  className="primary-button"
+                  onClick={continueToNextStep}
+                  disabled={
+                    loadingSheets ||
+                    creatingSheet ||
+                    (mode === 'new'
+                      ? !newSheetName.trim()
+                      : !selectedSheet ||
+                      !sheets.some(sheet => sheet.id === selectedSheet))
+                  }
+                >
+                  {creatingSheet
+                    ? 'Creating...'
+                    : action === 'scan'
+                      ? 'Continue to scanning'
+                      : 'Continue to uploading'}
+                  {!creatingSheet && <ArrowRight size={16} />}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

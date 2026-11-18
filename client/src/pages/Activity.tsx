@@ -74,7 +74,9 @@ export default function Activity() {
     try {
       setError('')
 
-      const response = await fetch(`${API_URL}/api/sessions`)
+      const response = await fetch(`${API_URL}/api/sessions`, {
+        credentials: 'include',
+      })
       const data: SessionsResponse = await response.json()
 
       if (!response.ok || !data.success) {
@@ -114,7 +116,10 @@ export default function Activity() {
       setError('')
 
       const response = await fetch(
-        `${API_URL}/api/sheets/${encodeURIComponent(job.sheetId)}/export`
+        `${API_URL}/api/sheets/${encodeURIComponent(job.sheetId)}/export`,
+        {
+          credentials: 'include',
+        }
       )
 
       if (!response.ok) {
@@ -153,9 +158,11 @@ export default function Activity() {
     try {
       const response = await fetch(
         `${API_URL}/api/sessions/${encodeURIComponent(deleteJob.id)}`,
-        { method: 'DELETE' }
+        {
+          method: 'DELETE',
+          credentials: 'include',
+        }
       )
-
       const data = await response.json()
 
       if (!response.ok || !data.success) {

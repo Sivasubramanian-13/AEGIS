@@ -82,6 +82,7 @@ export default function ScanSession() {
       sessionPromiseRef.current = (async () => {
         const response = await fetch(`${API_URL}/api/sessions`, {
           method: 'POST',
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -214,6 +215,7 @@ export default function ScanSession() {
         `${API_URL}/api/prescriptions/process`,
         {
           method: 'POST',
+          credentials: 'include',
           body: formData,
         }
       )

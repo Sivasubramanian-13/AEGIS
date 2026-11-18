@@ -39,7 +39,10 @@ export default function AppLayout() {
         if (!response.ok) {
           throw new Error('Unable to fetch Google profile')
         }
-
+        console.log('Profile API URL:', `${API_URL}/api/auth/me`)
+console.log('Response status:', response.status)
+console.log('Response content type:', response.headers.get('content-type'))
+console.log('Response body:', await response.clone().text())
         const data = await response.json()
         setUser(data.user)
       } catch (error) {

@@ -84,7 +84,9 @@ export default function Review() {
       setLoadingSheets(true)
       setSheetError('')
 
-      const response = await fetch(`${API_URL}/api/sheets`)
+      const response = await fetch(`${API_URL}/api/sheets`, {
+        credentials: 'include',
+      })
       const data = await response.json()
 
       if (!response.ok || !data.success) {
@@ -129,7 +131,10 @@ export default function Review() {
 
     try {
       const response = await fetch(
-        `${API_URL}/api/sheets/${sheet.id}/rows`
+        `${API_URL}/api/sheets/${sheet.id}/rows`,
+        {
+          credentials: 'include',
+        }
       )
 
       const data = await response.json()
@@ -252,6 +257,7 @@ export default function Review() {
         `${API_URL}/api/sheets/${selectedSheet.id}/rows`,
         {
           method: 'PUT',
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -285,7 +291,10 @@ export default function Review() {
 
       const response = await fetch(
         `${API_URL}/api/sheets/${selectedSheet.id}`,
-        { method: 'DELETE' }
+        {
+          method: 'DELETE',
+          credentials: 'include',
+        }
       )
 
       const data = await response.json()
