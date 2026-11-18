@@ -1,6 +1,10 @@
 {
   "routes": [
     {
+      "src": "/googlecb220bffa80cdeb8\\.html",
+      "dest": "/googlecb220bffa80cdeb8.html"
+    },
+    {
       "handle": "filesystem"
     },
     {
