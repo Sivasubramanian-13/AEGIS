@@ -28,10 +28,13 @@ const API_URL =
 export default function AppLayout() {
   const [user, setUser] = useState<GoogleUser | null>(null)
 
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/auth/me`)
+        const response = await fetch(`${API_URL}/api/auth/me`, {
+          credentials: 'include',
+        })
 
         if (!response.ok) {
           throw new Error('Unable to fetch Google profile')
@@ -106,19 +109,19 @@ export default function AppLayout() {
               </div>
 
               {user?.picture ? (
-  <img
-    src={user.picture}
-    alt="Profile"
-    className="header-avatar"
-    onError={(e) => {
-      e.currentTarget.style.display = 'none'
-    }}
-  />
-) : (
-  <div className="header-avatar header-avatar-fallback">
-    {user?.name?.charAt(0).toUpperCase() || 'G'}
-  </div>
-)}
+                <img
+                  src={user.picture}
+                  alt="Profile"
+                  className="header-avatar"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none'
+                  }}
+                />
+              ) : (
+                <div className="header-avatar header-avatar-fallback">
+                  {user?.name?.charAt(0).toUpperCase() || 'G'}
+                </div>
+              )}
             </div>
           </div>
         </header>

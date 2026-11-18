@@ -183,10 +183,9 @@ router.post('/logout', async (_req, res) => {
   try {
     await clearGoogleTokens()
 
-    return res.json({
-      success: true,
-      message: 'Google account disconnected successfully',
-    })
+
+    return res.redirect(process.env.CLIENT_URL || 'http://localhost:5173')
+
   } catch (error) {
     console.error('Google logout error:', error)
 

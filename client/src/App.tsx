@@ -13,40 +13,68 @@ import Settings from './pages/Settings'
 import UploadSession from './pages/UploadSession'
 import ScanSession from './pages/ScanSession'
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
+type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated'
+
 export default function App() {
-  const [loading, setLoading] = useState(true)
+  const [authStatus, setAuthStatus] = useState<AuthStatus>('loading')
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false)
-    }, 1500)
+    let active = true
 
-    return () => clearTimeout(timer)
+    const checkAuth = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/auth/me`, {
+          credentials: 'include',
+        })
+
+        if (!active) return
+
+        setAuthStatus(response.ok ? 'authenticated' : 'unauthenticated')
+      } catch {
+        if (active) setAuthStatus('unauthenticated')
+      }
+    }
+
+    checkAuth()
+
+    return () => {
+      active = false
+    }
   }, [])
 
-  if (loading) {
+  if (authStatus === 'loading') {
     return <SplashScreen />
   }
 
   return (
     <Routes>
-      {/* Sign-in */}
-      <Route path="/signin" element={<SignIn />} />
+      <Route
+        path="/signin"
+        element={
+          authStatus === 'authenticated'
+            ? <Navigate to="/" replace />
+            : <SignIn />
+        }
+      />
 
-      {/* Scanner sessions */}
-      <Route path="/scan-session" element={<ScanSession />} />
-      <Route path="/upload-session" element={<UploadSession />} />
-
-      {/* Main application */}
-      <Route element={<AppLayout />}>
+      <Route
+        element={
+          authStatus === 'authenticated'
+            ? <AppLayout />
+            : <Navigate to="/signin" replace />
+        }
+      >
         <Route path="/" element={<Scan />} />
         <Route path="/activity" element={<Activity />} />
         <Route path="/review" element={<Review />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/scan-session" element={<ScanSession />} />
+        <Route path="/upload-session" element={<UploadSession />} />
       </Route>
 
-      {/* Default route */}
-      <Route path="*" element={<Navigate to="/signin" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }
